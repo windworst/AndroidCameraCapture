@@ -1,13 +1,23 @@
 package com.fulldata.cameracapture;
 
 
+import java.net.InetAddress;
+import java.net.NetworkInterface;
+import java.net.SocketException;
+import java.net.UnknownHostException;
+import java.util.Enumeration;
+
 import android.app.Activity;
+import android.content.Context;
 import android.content.Intent;
+import android.net.wifi.WifiInfo;
+import android.net.wifi.WifiManager;
 import android.os.Bundle;
 import android.view.View;
 import android.view.View.OnClickListener;
 import android.widget.Button;
 import android.widget.EditText;
+import android.widget.TextView;
 import android.widget.Toast;
 
 
@@ -16,6 +26,36 @@ public class MainActivity extends Activity implements OnClickListener  {
 	static int port;
 	Button btn;
 	EditText edittext;
+
+    private String intToIp(int i) {     
+
+        
+
+        return (i & 0xFF ) + "." +     
+
+      ((i >> 8 ) & 0xFF) + "." +     
+
+      ((i >> 16 ) & 0xFF) + "." +     
+
+      ( i >> 24 & 0xFF) ;
+
+   } 
+	 public String getLocalIpAddress() {     
+		 WifiManager wifiManager = (WifiManager) getSystemService(Context.WIFI_SERVICE);
+
+
+	        if (!wifiManager.isWifiEnabled()) {
+
+	        wifiManager.setWifiEnabled(true);  
+
+	        }
+
+	        WifiInfo wifiInfo = wifiManager.getConnectionInfo();     
+
+	        int ipAddress = wifiInfo.getIpAddress(); 
+
+	        return intToIp(ipAddress); 
+	    }     
 
 	@Override
 	protected void onCreate(Bundle savedInstanceState) {
@@ -28,6 +68,17 @@ public class MainActivity extends Activity implements OnClickListener  {
 		btn.setOnClickListener(this);
 		
 		edittext = (EditText) findViewById(R.id.editText1);
+		
+
+		{
+			String ip = getLocalIpAddress();
+			if(ip!=null)
+			{
+				TextView tv = (TextView)findViewById(R.id.textView1);
+				tv.setText(ip);
+			}
+		}
+
 		
 		
 		if(RunService.isStart)
