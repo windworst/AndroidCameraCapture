@@ -17,9 +17,16 @@ import android.hardware.Camera.Parameters;
 import android.hardware.Camera.PictureCallback;
 
 public class HandleConnect extends Thread {
-	Socket accept_sck;
 	ServerSocket listen_sck;
-	
+	public void Close()
+	{
+		try {
+			listen_sck.close();
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+	}
 	public boolean Listening(int port)
 	{
 		try {
@@ -31,19 +38,22 @@ public class HandleConnect extends Thread {
 		}
 		return true;
 	}
-	public void HandleConnect()
+	public void ProcHandleConnect()
 	{
 		while(true)
 		{
+			Socket accept_sck;
 			try {
-				Socket accept_sck = listen_sck.accept();
+				accept_sck = listen_sck.accept();
+			} catch (IOException e1) {
+				break;
+			}
+			try {
 				if(!this.catchCamera(accept_sck))
 				{
-					this.accept_sck.close();
+					accept_sck.close();
 				}
 			} catch (Exception e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
 			}
 		}
 
@@ -97,6 +107,7 @@ public class HandleConnect extends Thread {
 			// TODO Auto-generated catch block
 			e2.printStackTrace();
 			return false;
+		}finally{
 		}
 
 		Camera camera = null;
@@ -139,7 +150,9 @@ public class HandleConnect extends Thread {
 						os.flush();
 					} catch (IOException e1) {
 						// TODO Auto-generated catch block
-						e1.printStackTrace();
+						
+					}finally{
+
 					}
 
 					try {
@@ -160,7 +173,7 @@ public class HandleConnect extends Thread {
 	
 	public void run()
 	{
-		HandleConnect();
+		ProcHandleConnect();
 	}
 
 }
