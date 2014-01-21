@@ -24,7 +24,7 @@ public class RunService extends Service{
 				hc.start();
 			}
 		}
-	    return super.onStartCommand(intent, flags, startId);  
+	    return START_REDELIVER_INTENT; 
 	 }
 	 
 	 @Override
