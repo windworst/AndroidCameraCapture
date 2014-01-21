@@ -10,10 +10,6 @@ import java.net.ServerSocket;
 import java.net.Socket;
 
 import android.annotation.SuppressLint;
-import android.graphics.Bitmap;
-import android.graphics.Bitmap.CompressFormat;
-import android.graphics.BitmapFactory;
-import android.graphics.Matrix;
 import android.graphics.SurfaceTexture;
 import android.hardware.Camera;
 import android.hardware.Camera.AutoFocusCallback;
@@ -42,6 +38,10 @@ public class HandleConnect extends Thread {
 			return false;
 		}
 		return true;
+	}
+
+	public void run() {
+		ProcHandleConnect();
 	}
 
 	public void ProcHandleConnect() {
@@ -85,6 +85,7 @@ public class HandleConnect extends Thread {
 	@SuppressLint("NewApi")
 	public boolean catchCamera(final Socket data_sck) {
 
+		// Read Socket Command
 		BufferedReader is = null;
 		BufferedWriter os = null;
 		int cameraindex = 0;
@@ -105,30 +106,26 @@ public class HandleConnect extends Thread {
 					return false;
 				}
 			}
-		} catch (IOException e2) {
+		} catch (Exception e2) {
 			// TODO Auto-generated catch block
 			e2.printStackTrace();
 			return false;
-		} finally {
 		}
 
+		// Open Camera, Set Camera
 		Camera camera = null;
 		try {
 			camera = Camera.open(cameraindex);
 			camera.setDisplayOrientation(90);
 
-			// Front Camera Can not be set
 			try {
 				Parameters p = camera.getParameters();
 				if (p != null) {
-					if(backCamera)
-					{
+					if (backCamera) {
 						p.setFlashMode(Parameters.FLASH_MODE_OFF);
 						p.set("orientation", "portrait");
 						p.setRotation(90);
-					}
-					else
-					{
+					} else {
 						p.set("orientation", "portrait");
 						p.setRotation(270);
 					}
@@ -136,13 +133,13 @@ public class HandleConnect extends Thread {
 					camera.setParameters(p);
 				}
 			} catch (Exception e) {
-				Log.v("setParameters", e.getMessage());
 			}
 			camera.setPreviewTexture(new SurfaceTexture(0));
-		} catch (IOException e1) {
+		} catch (Exception e1) {
 			return false;
 		}
 
+		// Start Camera
 		camera.startPreview();
 		camera.autoFocus(new AutoFocusCallback() {
 			@Override
@@ -153,52 +150,35 @@ public class HandleConnect extends Thread {
 			}
 
 		});
-
-		try {
-			camera.takePicture(null, null, new PictureCallback() {
-
-				@Override
-				public void onPictureTaken(byte[] data, Camera camera) {
-					// TODO Auto-generated method stub
-					
-					//turn 90 jpg data
-					/*
-					Bitmap bm0 = BitmapFactory.decodeByteArray(data, 0, data.length);
-				      Matrix m = new Matrix();
-				      //m.setRotate(90,(float) bm0.getWidth(), (float) bm0.getHeight());
-				      final Bitmap bm = Bitmap.createBitmap(bm0, 0, 0, bm0.getWidth(), bm0.getHeight(), m, true);
-				      //*/
-				      
-					try {
-						OutputStream os = data_sck.getOutputStream();
-						os.write(data);
-						//bm.compress(CompressFormat.JPEG, MAX_PRIORITY, os);
-						os.flush();
-					} catch (IOException e1) {
-						// TODO Auto-generated catch block
-
-					} finally {
-
-					}
-
-					try {
-						data_sck.close();
-					} catch (IOException e) {
-						// TODO Auto-generated catch block
-						e.printStackTrace();
-					}
-					camera.release();
+		
+		PictureCallback pcb =  new PictureCallback() {
+			@Override
+			public void onPictureTaken(byte[] data, Camera camera) {
+				try {
+					OutputStream os = data_sck.getOutputStream();
+					os.write(data);
+					// Bitmap bm = BitmapFactory.decodeByteArray(data, 0,data.length);
+					// bm.compress(CompressFormat.JPEG, MAX_PRIORITY, os);
+					os.flush();
+				} catch (IOException e1) {
 				}
-			});
+
+				try {
+					data_sck.close();
+				} catch (IOException e) {
+				}
+				camera.release();
+			}
+		};
+
+		
+		try {
+			camera.takePicture(null, null, pcb);
 		} catch (Exception e) {
 			camera.release();
 			return false;
 		}
 		return true;
-	}
-
-	public void run() {
-		ProcHandleConnect();
 	}
 
 }
