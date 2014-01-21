@@ -29,8 +29,6 @@ public class MainActivity extends Activity implements OnClickListener  {
 
     private String intToIp(int i) {     
 
-        
-
         return (i & 0xFF ) + "." +     
 
       ((i >> 8 ) & 0xFF) + "." +     
@@ -69,14 +67,19 @@ public class MainActivity extends Activity implements OnClickListener  {
 		
 		edittext = (EditText) findViewById(R.id.editText1);
 		
-
+		TextView tv = (TextView)findViewById(R.id.textView1);
+		try
 		{
 			String ip = getLocalIpAddress();
 			if(ip!=null)
 			{
-				TextView tv = (TextView)findViewById(R.id.textView1);
+				
 				tv.setText(ip);
 			}
+		}
+		catch(Exception e)
+		{
+			tv.setText("None Wifi");
 		}
 
 		
