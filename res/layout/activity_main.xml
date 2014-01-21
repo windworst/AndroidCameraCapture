@@ -10,22 +10,22 @@
     tools:context=".MainActivity" >
 
     <TextView
-        android:id="@+id/textView1"
+        android:id="@+id/localIP"
         android:layout_width="wrap_content"
         android:layout_height="40dp"
-        android:layout_alignBottom="@+id/editText1"
+        android:layout_alignBottom="@+id/listenPort"
         android:layout_alignParentLeft="true"
-        android:layout_alignTop="@+id/button1"
-        android:layout_toLeftOf="@+id/editText1"
+        android:layout_alignTop="@+id/startListen"
+        android:layout_toLeftOf="@+id/listenPort"
         android:gravity="center"
-        android:text=" " />
+        android:text="0.0.0.0" />
 
     <EditText
-        android:id="@+id/editText1"
+        android:id="@+id/listenPort"
         android:layout_width="70dp"
         android:layout_height="40dp"
-        android:layout_alignTop="@+id/button1"
-        android:layout_toLeftOf="@+id/button1"
+        android:layout_alignTop="@+id/startListen"
+        android:layout_toLeftOf="@+id/startListen"
         android:ems="10"
         android:inputType="numberDecimal"
         android:text="6666" >
@@ -34,7 +34,7 @@
     </EditText>
 
     <Button
-        android:id="@+id/button1"
+        android:id="@+id/startListen"
         android:layout_width="wrap_content"
         android:layout_height="40dp"
         android:layout_alignParentRight="true"

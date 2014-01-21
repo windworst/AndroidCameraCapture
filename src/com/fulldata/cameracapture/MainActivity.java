@@ -10,6 +10,7 @@ import java.util.Enumeration;
 import android.app.Activity;
 import android.content.Context;
 import android.content.Intent;
+import android.content.pm.ActivityInfo;
 import android.net.wifi.WifiInfo;
 import android.net.wifi.WifiManager;
 import android.os.Bundle;
@@ -62,12 +63,12 @@ public class MainActivity extends Activity implements OnClickListener  {
 		
 		//setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE);
 
-		btn = (Button) findViewById(R.id.button1);
+		btn = (Button) findViewById(R.id.startListen);
 		btn.setOnClickListener(this);
 		
-		edittext = (EditText) findViewById(R.id.editText1);
+		edittext = (EditText) findViewById(R.id.listenPort);
 		
-		TextView tv = (TextView)findViewById(R.id.textView1);
+		TextView tv = (TextView)findViewById(R.id.localIP);
 		try
 		{
 			String ip = getLocalIpAddress();
@@ -79,7 +80,7 @@ public class MainActivity extends Activity implements OnClickListener  {
 		}
 		catch(Exception e)
 		{
-			tv.setText("None Wifi");
+			;
 		}
 
 		
@@ -135,7 +136,7 @@ public class MainActivity extends Activity implements OnClickListener  {
 		// TODO Auto-generated method stub
 		switch (arg0.getId())
 		{
-		case R.id.button1:
+		case R.id.startListen:
 			ClickButton();
 			break;
 		default: break;
