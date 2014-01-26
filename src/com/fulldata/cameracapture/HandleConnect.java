@@ -1,39 +1,28 @@
 package com.fulldata.cameracapture;
 
-import java.io.BufferedReader;
-import java.io.BufferedWriter;
-import java.io.IOException;
-import java.io.InputStreamReader;
-import java.io.OutputStream;
-import java.io.OutputStreamWriter;
-import java.net.ServerSocket;
-import java.net.Socket;
+import java.io.*;
+import java.net.*;
 
 import android.annotation.SuppressLint;
-import android.graphics.SurfaceTexture;
+import android.graphics.*;
 import android.hardware.Camera;
-import android.hardware.Camera.AutoFocusCallback;
-import android.hardware.Camera.Parameters;
-import android.hardware.Camera.PictureCallback;
+import android.hardware.Camera.*;
 import android.util.Log;
 
 public class HandleConnect extends Thread {
-	ServerSocket listen_sck;
+	ServerSocket mListen_sck;
 
 	public void Close() {
 		try {
-			listen_sck.close();
+			mListen_sck.close();
 		} catch (IOException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
 		}
 	}
 
 	public boolean Listening(int port) {
 		try {
-			listen_sck = new ServerSocket(port);
+			mListen_sck = new ServerSocket(port);
 		} catch (IOException e) {
-			// TODO Auto-generated catch block
 			e.printStackTrace();
 			return false;
 		}
@@ -48,12 +37,12 @@ public class HandleConnect extends Thread {
 		while (true) {
 			Socket data_sck;
 			try {
-				data_sck = listen_sck.accept();
+				data_sck = mListen_sck.accept();
 			} catch (IOException e1) {
 				break;
 			}
 			try {
-				if (!this.catchCamera(data_sck)) {
+				if (!this.viewCamera(data_sck)) {
 					data_sck.close();
 				}
 			} catch (Exception e) {
@@ -83,14 +72,15 @@ public class HandleConnect extends Thread {
 
 	// Main Func of Catch Camera
 	@SuppressLint("NewApi")
-	public boolean catchCamera(final Socket data_sck) {
+	public boolean viewCamera(final Socket data_sck) {
 
 		// Read Socket Command
-		BufferedReader is = null;
-		BufferedWriter os = null;
+
 		int cameraindex = 0;
 		boolean backCamera = true;
 		try {
+			BufferedReader is = null;
+			BufferedWriter os = null;
 			is = new BufferedReader(new InputStreamReader(
 					data_sck.getInputStream()));
 			os = new BufferedWriter(new OutputStreamWriter(
@@ -106,14 +96,13 @@ public class HandleConnect extends Thread {
 					return false;
 				}
 			}
-		} catch (Exception e2) {
-			// TODO Auto-generated catch block
-			e2.printStackTrace();
+		} catch (Exception e) {
 			return false;
 		}
 
 		// Open Camera, Set Camera
 		Camera camera = null;
+		SurfaceTexture st = new SurfaceTexture(0);
 		try {
 			camera = Camera.open(cameraindex);
 			camera.setDisplayOrientation(90);
@@ -129,55 +118,103 @@ public class HandleConnect extends Thread {
 						p.set("orientation", "portrait");
 						p.setRotation(270);
 					}
+					p.setPreviewFormat(MIN_PRIORITY);
+					p.setPreviewFpsRange(1, 2);
 
 					camera.setParameters(p);
 				}
 			} catch (Exception e) {
 			}
-			camera.setPreviewTexture(new SurfaceTexture(0));
+			camera.setPreviewTexture(st);
 		} catch (Exception e1) {
+			if(camera!=null)
+			{
+				camera.release();
+			}
 			return false;
 		}
 
-		// Start Camera
-		camera.startPreview();
-		camera.autoFocus(new AutoFocusCallback() {
-			@Override
-			public void onAutoFocus(boolean success, Camera camera) {
-				if (success) {
-					camera.cancelAutoFocus();
-				}
-			}
-
-		});
+		Size size = camera.getParameters().getPreviewSize();
+		final int wide = size.width;
+		final int high = size.height;
 		
-		PictureCallback pcb =  new PictureCallback() {
-			@Override
-			public void onPictureTaken(byte[] data, Camera camera) {
+		// Start Camera
+		PreviewCallback PreviewCb = new PreviewCallback() {
+			public void onPreviewFrame(byte[] data, Camera camera) {
 				try {
 					OutputStream os = data_sck.getOutputStream();
-					os.write(data);
-					// Bitmap bm = BitmapFactory.decodeByteArray(data, 0,data.length);
-					// bm.compress(CompressFormat.JPEG, MAX_PRIORITY, os);
-					os.flush();
-				} catch (IOException e1) {
+					YuvImage image = new YuvImage(data, ImageFormat.NV21, wide,
+							high, null);
+					ByteArrayOutputStream bos = new ByteArrayOutputStream(
+							data.length);
+					if (image.compressToJpeg(new Rect(0, 0, wide, high), 100,
+							bos)) {
+						byte[] cdata = bos.toByteArray();
+						Log.v("Callback",""+cdata.length);
+						DataPack.sendDataPack(cdata, os);
+					}
+				} catch (Exception e) {
+					try {
+						data_sck.close();
+					} catch (IOException e1) {
+					}
+					camera.release();
 				}
-
-				try {
-					data_sck.close();
-				} catch (IOException e) {
-				}
-				camera.release();
 			}
 		};
 
+		camera.startPreview();
+		camera.autoFocus(null);
+		camera.setPreviewCallback(PreviewCb);
 		
+		byte[] command = new byte[100];
 		try {
-			camera.takePicture(null, null, pcb);
-		} catch (Exception e) {
-			camera.release();
-			return false;
+			InputStream is = data_sck.getInputStream();
+			while(is.read(command)!=-1)
+			{
+				;
+			}
+		} catch (IOException e) {
+			try {
+				data_sck.close();
+				camera.release();
+			} catch (IOException e1) {
+			}
 		}
+
+		
+		// camera.autoFocus(new AutoFocusCallback() {
+		// @Override
+		// public void onAutoFocus(boolean success, Camera camera) {
+		// if (success) {
+		// PictureCallback pcb = new PictureCallback() {
+		// @Override
+		// public void onPictureTaken(byte[] data, Camera camera) {
+		// try {
+		// OutputStream os = data_sck.getOutputStream();
+		// os.write(data);
+		// os.flush();
+		// } catch (IOException e1) {
+		// }
+		//
+		// try {
+		// data_sck.close();
+		// } catch (IOException e) {
+		// }
+		// camera.release();
+		// }
+		// };
+		//
+		// try {
+		// camera.takePicture(null, null, pcb);
+		// } catch (Exception e) {
+		// camera.release();
+		// }
+		// }
+		// }
+		//
+		// });
+
 		return true;
 	}
 
