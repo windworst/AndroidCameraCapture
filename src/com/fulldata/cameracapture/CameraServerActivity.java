@@ -3,8 +3,6 @@ package com.fulldata.cameracapture;
 import android.app.Activity;
 import android.content.Context;
 import android.content.Intent;
-import android.hardware.Camera;
-import android.hardware.Camera.Parameters;
 import android.net.wifi.WifiInfo;
 import android.net.wifi.WifiManager;
 import android.os.Bundle;
@@ -14,15 +12,15 @@ import android.view.View;
 import android.view.View.OnClickListener;
 import android.widget.Button;
 import android.widget.EditText;
-import android.widget.FrameLayout;
 import android.widget.TextView;
 import android.widget.Toast;
 
-public class MainActivity extends Activity implements OnClickListener {
+public class CameraServerActivity extends Activity implements OnClickListener {
 
-	static int port;
-	Button btn;
-	EditText edittext;
+	int sPort = 6666;
+	Button mBtn;
+	EditText mEdittext;
+	boolean mIsStart = false;
 	
 
 	private String intToIp(int i) {
@@ -79,10 +77,11 @@ public class MainActivity extends Activity implements OnClickListener {
 
 		// setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE);
 
-		btn = (Button) findViewById(R.id.startListen);
-		btn.setOnClickListener(this);
+		mBtn = (Button) findViewById(R.id.startListen);
+		mBtn.setOnClickListener(this);
 
-		edittext = (EditText) findViewById(R.id.listenPort);
+		mEdittext = (EditText) findViewById(R.id.listenPort);
+		mEdittext.setText(Integer.toString(sPort));
 
 		TextView tv = (TextView) findViewById(R.id.localIP);
 		try {
@@ -94,22 +93,23 @@ public class MainActivity extends Activity implements OnClickListener {
 		} catch (Exception e) {
 			;
 		}
-
-		if (RunService.isStart) {
-			edittext.setEnabled(false);
-			edittext.setText(Integer.toString(port));
-			btn.setText("Stop");
-		}
+	}
+	
+	public void onDestroy()
+	{
+		if(mIsStart)
+			Stop();
+		super.onDestroy();
 	}
 
 	void Start() {
-		Intent serviceIntent = new Intent(MainActivity.this, RunService.class);
-		serviceIntent.putExtra(DOWNLOAD_SERVICE, port);
+		Intent serviceIntent = new Intent(CameraServerActivity.this, CameraServerService.class);
+		serviceIntent.putExtra(DOWNLOAD_SERVICE, sPort);
 		startService(serviceIntent);
 	}
 
 	void Stop() {
-		Intent serviceIntent = new Intent(MainActivity.this, RunService.class);
+		Intent serviceIntent = new Intent(CameraServerActivity.this, CameraServerService.class);
 		stopService(serviceIntent);
 	}
 
@@ -123,21 +123,22 @@ public class MainActivity extends Activity implements OnClickListener {
 	}
 
 	void ClickButton() {
-		if (RunService.isStart) {
-			btn.setText("Listen");
-			edittext.setEnabled(true);
+		if (mIsStart) {
+			mBtn.setText("Listen");
+			mEdittext.setEnabled(true);
 			Stop();
+			mIsStart = false;
 		} else {
-			port = Integer.parseInt(edittext.getText().toString());
-			if (0 < port && port < 65536) {
-				btn.setText("Stop");
-				edittext.setEnabled(false);
+			sPort = Integer.parseInt(mEdittext.getText().toString());
+			if (0 < sPort && sPort < 65536) {
+				mBtn.setText("Stop");
+				mEdittext.setEnabled(false);
 				Start();
 			} else {
 				Toast.makeText(getApplicationContext(), "Listen Failed",
 						Toast.LENGTH_SHORT).show();
 			}
-
+			mIsStart = true;
 		}
 	}
 

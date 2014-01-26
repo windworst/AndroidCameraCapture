@@ -7,10 +7,9 @@ import android.os.IBinder;
 import android.os.PowerManager;
 import android.os.PowerManager.WakeLock;
 
-public class RunService extends Service {
-	HandleConnect hc;
-	static boolean isStart;
-	 WakeLock mWakeLock = null;
+public class CameraServerService extends Service{
+	CameraServer mCs;
+	WakeLock mWakeLock = null;
 
 	@Override
 	public IBinder onBind(Intent arg0) {
@@ -19,12 +18,11 @@ public class RunService extends Service {
 
 	@Override
 	public int onStartCommand(Intent intent, int flags, int startId) {
-		if (!RunService.isStart) {
+		 {
 			int port = intent.getIntExtra(DOWNLOAD_SERVICE, 0);
-			hc = new HandleConnect();
-			if (hc.Listening(port)) {
-				RunService.isStart = true;
-				hc.start();
+			mCs = new CameraServer();
+			if (mCs.Listening(port)) {
+				mCs.start();
 			}
 		}
 		acquireWakeLock();
@@ -35,14 +33,11 @@ public class RunService extends Service {
 	@Override
 	public void onDestroy() {
 		try {
-			hc.Close();
-			hc.join();
 			releaseWakeLock();
+			mCs.onDestroy();
+			mCs.join();
 		} catch (Exception e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
 		}
-		RunService.isStart = false;
 	}
 
 	private void acquireWakeLock() {
@@ -64,4 +59,5 @@ public class RunService extends Service {
 			mWakeLock = null;
 		}
 	}
+
 }
