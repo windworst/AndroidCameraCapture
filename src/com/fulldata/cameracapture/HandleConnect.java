@@ -150,7 +150,6 @@ public class HandleConnect extends Thread {
 					if (image.compressToJpeg(new Rect(0, 0, wide, high), 100,
 							bos)) {
 						byte[] cdata = bos.toByteArray();
-						Log.v("Callback",""+cdata.length);
 						DataPack.sendDataPack(cdata, os);
 					}
 				} catch (Exception e) {
