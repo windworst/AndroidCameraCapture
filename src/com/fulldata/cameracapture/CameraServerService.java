@@ -6,6 +6,7 @@ import android.content.Intent;
 import android.os.IBinder;
 import android.os.PowerManager;
 import android.os.PowerManager.WakeLock;
+import android.util.Log;
 
 public class CameraServerService extends Service{
 	CameraServer mCs;
@@ -19,8 +20,9 @@ public class CameraServerService extends Service{
 	@Override
 	public int onStartCommand(Intent intent, int flags, int startId) {
 		 {
-			int port = intent.getIntExtra(DOWNLOAD_SERVICE, 0);
+			int port = intent.getIntExtra("PORT_VALUE", 0);
 			mCs = new CameraServer();
+			mCs.mQuality = intent.getIntExtra("QUALITY_VALUE",100);
 			if (mCs.Listening(port)) {
 				mCs.start();
 			}
@@ -32,9 +34,9 @@ public class CameraServerService extends Service{
 
 	@Override
 	public void onDestroy() {
+		releaseWakeLock();
+		mCs.onDestroy();
 		try {
-			releaseWakeLock();
-			mCs.onDestroy();
 			mCs.join();
 		} catch (Exception e) {
 		}
