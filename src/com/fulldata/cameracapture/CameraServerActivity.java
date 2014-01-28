@@ -17,15 +17,12 @@ import android.widget.SeekBar.OnSeekBarChangeListener;
 import android.widget.TextView;
 import android.widget.Toast;
 
-public class CameraServerActivity extends Activity implements OnClickListener, OnSeekBarChangeListener {
+public class CameraServerActivity extends Activity implements OnClickListener {
 
 	int mPort = 6666;
-	int mQuality = 70;
 	Button mBtn;
 	EditText mEdittext;
 	boolean mIsStart = false;
-	SeekBar mQualitySeekBar = null;
-	TextView mQualityTextView = null;
 
 
 	@Override
@@ -40,14 +37,6 @@ public class CameraServerActivity extends Activity implements OnClickListener, O
 
 		mEdittext = (EditText) findViewById(R.id.listenPort);
 		mEdittext.setText(Integer.toString(mPort));
-		
-		mQualitySeekBar = (SeekBar) findViewById(R.id.qualitySeekBar);
-		mQualitySeekBar.setMax(100);
-		mQualitySeekBar.setProgress(mQuality);
-		mQualitySeekBar.setOnSeekBarChangeListener(this);
-		
-		mQualityTextView = (TextView) findViewById(R.id.qualityTextView);
-		SetSeekBar(mQuality);
 	
 		setLocalIp();
 	}
@@ -124,7 +113,6 @@ public class CameraServerActivity extends Activity implements OnClickListener, O
 		Intent serviceIntent = new Intent(CameraServerActivity.this,
 				CameraServerService.class);
 		serviceIntent.putExtra("PORT_VALUE", mPort);
-		serviceIntent.putExtra("QUALITY_VALUE",mQuality);
 		startService(serviceIntent);
 	}
 
@@ -147,7 +135,6 @@ public class CameraServerActivity extends Activity implements OnClickListener, O
 		if (mIsStart) {
 			mBtn.setText("Listen");
 			mEdittext.setEnabled(true);
-			mQualitySeekBar.setEnabled(true);
 			Stop();
 			mIsStart = false;
 		} else {
@@ -155,7 +142,6 @@ public class CameraServerActivity extends Activity implements OnClickListener, O
 			if (0 < mPort && mPort < 65536) {
 				mBtn.setText(" Stop ");
 				setLocalIp();
-				mQualitySeekBar.setEnabled(false);
 				mEdittext.setEnabled(false);
 				Start();
 			} else {
@@ -177,30 +163,15 @@ public class CameraServerActivity extends Activity implements OnClickListener, O
 		}
 	}
 	
-	void SetSeekBar(int value)
-	{
-		mQuality = value;
-		int minValue = 5;
-		if(mQuality<minValue)
-		{
-			mQuality = minValue;
-		}		
-		mQualitySeekBar.setProgress(mQuality);
-		mQualityTextView.setText(""+mQuality+"%");
-	}
-
-	@Override
-	public void onProgressChanged(SeekBar arg0, int arg1, boolean arg2) {
-		SetSeekBar(arg1);
-	}
-
-	@Override
-	public void onStartTrackingTouch(SeekBar arg0) {
-		
-	}
-
-	@Override
-	public void onStopTrackingTouch(SeekBar arg0) {
-		
-	}
+//	void SetSeekBar(int value)
+//	{
+//		mQuality = value;
+//		int minValue = 5;
+//		if(mQuality<minValue)
+//		{
+//			mQuality = minValue;
+//		}		
+//		mQualitySeekBar.setProgress(mQuality);
+//		mQualityTextView.setText(""+mQuality+"%");
+//	}
 }

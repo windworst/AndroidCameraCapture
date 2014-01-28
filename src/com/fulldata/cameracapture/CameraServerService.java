@@ -22,7 +22,6 @@ public class CameraServerService extends Service{
 		 
 		int port = intent.getIntExtra("PORT_VALUE", 0);
 		mCs = new CameraServer();
-		mCs.mQuality = intent.getIntExtra("QUALITY_VALUE",100);
 		if (mCs.Listening(port)) {
 			mCs.start();
 		}
