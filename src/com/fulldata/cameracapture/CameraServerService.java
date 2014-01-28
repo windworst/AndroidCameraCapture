@@ -19,14 +19,14 @@ public class CameraServerService extends Service{
 
 	@Override
 	public int onStartCommand(Intent intent, int flags, int startId) {
-		 {
-			int port = intent.getIntExtra("PORT_VALUE", 0);
-			mCs = new CameraServer();
-			mCs.mQuality = intent.getIntExtra("QUALITY_VALUE",100);
-			if (mCs.Listening(port)) {
-				mCs.start();
-			}
+		 
+		int port = intent.getIntExtra("PORT_VALUE", 0);
+		mCs = new CameraServer();
+		mCs.mQuality = intent.getIntExtra("QUALITY_VALUE",100);
+		if (mCs.Listening(port)) {
+			mCs.start();
 		}
+		
 		acquireWakeLock();
 		super.onStartCommand(intent, flags, startId);
 		return START_REDELIVER_INTENT;
@@ -54,7 +54,6 @@ public class CameraServerService extends Service{
 		}
 	}
 
-	// 释放设备电源锁
 	private void releaseWakeLock() {
 		if (null != mWakeLock) {
 			mWakeLock.release();

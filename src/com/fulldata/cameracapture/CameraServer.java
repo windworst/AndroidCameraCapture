@@ -1,21 +1,41 @@
 package com.fulldata.cameracapture;
 
-import java.io.*;
-import java.net.*;
-
+import java.io.BufferedReader;
+import java.io.BufferedWriter;
+import java.io.ByteArrayOutputStream;
+import java.io.DataOutputStream;
+import java.io.File;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.io.OutputStream;
+import java.io.OutputStreamWriter;
+import java.net.ServerSocket;
+import java.net.Socket;
+import java.util.Calendar;
 import android.annotation.SuppressLint;
-import android.graphics.*;
+import android.graphics.Bitmap;
 import android.graphics.Bitmap.CompressFormat;
 import android.graphics.Bitmap.Config;
+import android.graphics.Matrix;
+import android.graphics.SurfaceTexture;
 import android.hardware.Camera;
-import android.hardware.Camera.*;
+import android.hardware.Camera.AutoFocusCallback;
+import android.hardware.Camera.Parameters;
+import android.hardware.Camera.PictureCallback;
+import android.hardware.Camera.PreviewCallback;
+import android.hardware.Camera.Size;
+import android.os.Environment;
 import android.util.Log;
 
 public class CameraServer extends Thread {
+	int mQuality = 100;
+	
 	ServerSocket mListen_sck = null;
 	Socket mData_sck = null;
 	Camera mCamera = null;
-	int mQuality = 100;
+
 
 	static public void decodeYUV420SP(int[] rgb, byte[] yuv420sp, int width,
 			int height) {
@@ -97,12 +117,15 @@ public class CameraServer extends Thread {
 		}
 	}
 
-	boolean sendDataPack(byte[] data, OutputStream os) {
+	boolean sendDataPack(byte[] data, OutputStream os,int OperationCode) {
 		int len = data.length;
 		DataOutputStream dos = new DataOutputStream(os);
 		try {
+			dos.writeInt(0XEEFF);
+			dos.writeInt(OperationCode);
 			dos.writeInt(len);
 			dos.write(data);
+			dos.flush();
 			return true;
 		} catch (IOException e) {
 		}
@@ -206,9 +229,10 @@ public class CameraServer extends Thread {
 			CloseCamera();
 			mCamera = Camera.open(cameraindex);
 
+			Parameters p = mCamera.getParameters();
 			try {
-				Parameters p = mCamera.getParameters();
-				if (p != null) {
+				if(p!=null)
+				{
 					if (backCamera) {
 						p.setFlashMode(Parameters.FLASH_MODE_OFF);
 						p.set("orientation", "portrait");
@@ -218,13 +242,17 @@ public class CameraServer extends Thread {
 						turnDegree = 270;
 						p.setRotation(turnDegree);
 					}
+					mCamera.setParameters(p);
 					//p.setFocusMode(p.FOCUS_MODE_CONTINUOUS_PICTURE);
-					p.setPreviewFpsRange(5, 10);
-					p.setAntibanding(p.ANTIBANDING_60HZ);
-
+					//p.setAntibanding(Parameters.ANTIBANDING_60HZ);
+					int width = 500;
+					int height = 500;
+					p.setPreviewSize(width, height);
 					mCamera.setParameters(p);
 				}
+				
 			} catch (Exception e) {
+				Log.v("Camera",e.getMessage());
 			}
 			mCamera.setDisplayOrientation(90);
 			mCamera.setPreviewTexture(st);
@@ -239,7 +267,7 @@ public class CameraServer extends Thread {
 		final int turnValue = turnDegree;
 
 		// Start Camera
-		PreviewCallback PreviewCb = new PreviewCallback() {
+		final PreviewCallback PreviewCb = new PreviewCallback() {
 			double LastLightValue = 0;
 			long stableTime = 0;
 			boolean isFocused = false;
@@ -259,12 +287,11 @@ public class CameraServer extends Thread {
 							Config.RGB_565);
 					Matrix m = new Matrix();
 					m.postRotate(turnValue);
-					//bm.compress(CompressFormat.JPEG, 100, bos);
 					Bitmap bitmap = Bitmap.createBitmap(bm, 0, 0, wide, high,m, true);
 					bitmap.compress(CompressFormat.JPEG, mQuality, bos);
 					
 					byte[] cdata = bos.toByteArray();
-					sendDataPack(cdata, os);
+					sendDataPack(cdata, os,1);
 					
 					double bright = getLight(rgb);
 					long   currentTime = System.currentTimeMillis();
@@ -294,6 +321,33 @@ public class CameraServer extends Thread {
 				}
 			}
 		};
+		
+		final PictureCallback Pcb = new PictureCallback() {
+			@Override
+			public void onPictureTaken(byte[] data, Camera camera) {
+				try {
+					OutputStream os = data_sck.getOutputStream();
+					sendDataPack(data, os, 0); //Send Pic back
+				} catch (IOException e) {
+				}
+				mCamera.startPreview();
+				mCamera.setPreviewCallback(PreviewCb);
+			}
+		};
+		
+		AutoFocusCallback Afc = new AutoFocusCallback() {
+			@Override
+			public void onAutoFocus(boolean success, Camera camera) {
+				if (success) {
+					try {
+						mCamera.takePicture(null, null, Pcb);
+					} catch (Exception e) {
+						mCamera.release();
+						CloseCamera();
+					}
+				}
+			}
+		};
 
 		mCamera.startPreview();
 		//mCamera.autoFocus(null);
@@ -303,7 +357,9 @@ public class CameraServer extends Thread {
 		try {
 			InputStream is = data_sck.getInputStream();
 			while (is.read(command) != -1) {
-				mCamera.autoFocus(null);
+				Log.v("Recv","Recv");
+				mCamera.setPreviewCallback(null);
+				mCamera.autoFocus(Afc);
 			}
 		} catch (Exception e) {
 			try {
@@ -311,38 +367,36 @@ public class CameraServer extends Thread {
 			} catch (Exception e1) {
 			}
 		}
-
-		// camera.autoFocus(new AutoFocusCallback() {
-		// @Override
-		// public void onAutoFocus(boolean success, Camera camera) {
-		// if (success) {
-		// PictureCallback pcb = new PictureCallback() {
-		// @Override
-		// public void onPictureTaken(byte[] data, Camera camera) {
-		// try {
-		// OutputStream os = data_sck.getOutputStream();
-		// os.write(data);
-		// os.flush();
-		// } catch (IOException e1) {
-		// }
-		//
-		// try {
-		// data_sck.close();
-		// } catch (IOException e) {
-		// }
-		// camera.release();
-		// }
-		// };
-		//
-		// try {
-		// camera.takePicture(null, null, pcb);
-		// } catch (Exception e) {
-		// camera.release();
-		// }
-		// }
-		// }
-		//
-		// });
 	}
+	public void savetoPic(byte[] data,String Path) {
+		Calendar c = Calendar.getInstance();
+		String datestring = "" + c.get(Calendar.YEAR)
+				+ String.format("%02d",(c.get(Calendar.MONTH) + 1)) 
+				+ String.format("%02d", c.get(Calendar.DAY_OF_MONTH))
+				+ String.format("%02d", c.get(Calendar.HOUR_OF_DAY))
+				+ String.format("%02d", c.get(Calendar.MINUTE)) 
+				+ String.format("%02d", c.get(Calendar.SECOND));
 
+		File dir = new File(Path);
+		dir.mkdirs();
+		Path += "/" + datestring + ".jpg";
+
+		File f = new File(Path);
+		FileOutputStream fo = null;
+		try {
+			fo = new FileOutputStream(f);
+			fo.write(data);
+			fo.flush();
+			fo.close();
+
+		} catch (IOException e) {
+			Log.v("PicSave", e.getMessage());
+		} finally {
+			try {
+				if (fo != null)
+					fo.close();
+			} catch (IOException e) {
+			}
+		}
+	}
 }

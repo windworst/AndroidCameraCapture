@@ -23,7 +23,6 @@ public class CameraServerActivity extends Activity implements OnClickListener, O
 	int mQuality = 70;
 	Button mBtn;
 	EditText mEdittext;
-	TextView mIpTextView = null;
 	boolean mIsStart = false;
 	SeekBar mQualitySeekBar = null;
 	TextView mQualityTextView = null;
@@ -48,11 +47,8 @@ public class CameraServerActivity extends Activity implements OnClickListener, O
 		mQualitySeekBar.setOnSeekBarChangeListener(this);
 		
 		mQualityTextView = (TextView) findViewById(R.id.qualityTextView);
-		mQualityTextView.setText(""+mQuality);
-		
-
-		mIpTextView = (TextView) findViewById(R.id.localIP);
-		
+		SetSeekBar(mQuality);
+	
 		setLocalIp();
 	}
 
@@ -97,7 +93,7 @@ public class CameraServerActivity extends Activity implements OnClickListener, O
 			if (ip == null) {
 				ip = "0.0.0.0";
 			}
-			mIpTextView.setText(ip);
+			setTitle("IP: "+ ip);
 		} catch (Exception e) {
 			;
 		}
@@ -157,7 +153,7 @@ public class CameraServerActivity extends Activity implements OnClickListener, O
 		} else {
 			mPort = Integer.parseInt(mEdittext.getText().toString());
 			if (0 < mPort && mPort < 65536) {
-				mBtn.setText("Stop");
+				mBtn.setText(" Stop ");
 				setLocalIp();
 				mQualitySeekBar.setEnabled(false);
 				mEdittext.setEnabled(false);
@@ -172,7 +168,6 @@ public class CameraServerActivity extends Activity implements OnClickListener, O
 
 	@Override
 	public void onClick(View arg0) {
-		// TODO Auto-generated method stub
 		switch (arg0.getId()) {
 		case R.id.startListen:
 			ClickButton();
@@ -191,12 +186,11 @@ public class CameraServerActivity extends Activity implements OnClickListener, O
 			mQuality = minValue;
 		}		
 		mQualitySeekBar.setProgress(mQuality);
-		mQualityTextView.setText(""+mQuality);
+		mQualityTextView.setText(""+mQuality+"%");
 	}
 
 	@Override
 	public void onProgressChanged(SeekBar arg0, int arg1, boolean arg2) {
-		// TODO Auto-generated method stub
 		SetSeekBar(arg1);
 	}
 
