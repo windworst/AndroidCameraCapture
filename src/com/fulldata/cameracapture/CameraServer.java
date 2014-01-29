@@ -310,9 +310,10 @@ public class CameraServer extends Thread {
 				try {
 					OutputStream os = data_sck.getOutputStream();
 					DataPack.sendDataPack(data, os, 0); //Send Pic back
-				} catch (IOException e) {
+				} catch (Exception e) {
 				}
 				mCamera.startPreview();
+				mCamera.setPreviewCallback(PreviewCb);
 			}
 		};
 		
@@ -339,6 +340,7 @@ public class CameraServer extends Thread {
 			InputStream is = data_sck.getInputStream();
 			while (is.read(command) != -1) {
 				Log.v("Recv","Recv");
+				mCamera.setPreviewCallback(null);
 				mCamera.autoFocus(Afc);
 			}
 		} catch (Exception e) {
