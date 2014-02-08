@@ -32,38 +32,44 @@ public class CameraServerService extends Service {
 
 	@Override
 	public int onStartCommand(Intent intent, int flags, int startId) {
-		 
+
 		final int port = intent.getIntExtra("PORT_VALUE", 0);
-		
+
 		Runnable mBroadcastRunner = new Runnable() {
 			@Override
 			public void run() {
 				StillbroadCast = true;
 				try {
-					DatagramSocket ds = new DatagramSocket();
-					byte[] data = "I'm Here, as always.".getBytes();
-					DatagramPacket sendPacket
-					= new DatagramPacket(data, data.length,InetAddress.getByName("255.255.255.255"),port );
 
-					while(StillbroadCast)
-					{
-						ds.send(sendPacket);
+					byte[] data = "I'm Here, as always.".getBytes();
+					DatagramPacket sendPacket = new DatagramPacket(data,
+							data.length,
+							InetAddress.getByName("255.255.255.255"), port);
+					DatagramSocket ds = new DatagramSocket();
+					while (StillbroadCast) {
+						try {
+							
+							ds.send(sendPacket);
+						} catch (Exception e) {
+						}
 						Thread.sleep(1000);
+
 					}
 					ds.close();
+
 				} catch (Exception e) {
 				}
 			}
 		};
-		
+
 		mUdpBroadCastThread = new Thread(mBroadcastRunner);
 		mUdpBroadCastThread.start();
-		
+
 		mCs = new CameraServer();
 		if (mCs.Listening(port)) {
 			mCs.start();
 		}
-		
+
 		acquireWakeLock();
 		super.onStartCommand(intent, flags, startId);
 		return START_REDELIVER_INTENT;
