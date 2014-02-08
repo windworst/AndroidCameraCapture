@@ -1,16 +1,29 @@
 package com.fulldata.cameracapture;
 
+import java.io.IOException;
+import java.net.DatagramPacket;
+import java.net.DatagramSocket;
+import java.net.InetAddress;
+import java.net.InetSocketAddress;
+import java.net.SocketException;
+import java.net.UnknownHostException;
+
 import android.app.Service;
 import android.content.Context;
 import android.content.Intent;
+import android.net.wifi.WifiInfo;
+import android.net.wifi.WifiManager;
 import android.os.IBinder;
 import android.os.PowerManager;
 import android.os.PowerManager.WakeLock;
 import android.util.Log;
 
-public class CameraServerService extends Service{
-	CameraServer mCs;
+public class CameraServerService extends Service {
+	CameraServer mCs = null;
 	WakeLock mWakeLock = null;
+
+	Thread mUdpBroadCastThread = null;
+	boolean StillbroadCast = false;
 
 	@Override
 	public IBinder onBind(Intent arg0) {
@@ -20,7 +33,32 @@ public class CameraServerService extends Service{
 	@Override
 	public int onStartCommand(Intent intent, int flags, int startId) {
 		 
-		int port = intent.getIntExtra("PORT_VALUE", 0);
+		final int port = intent.getIntExtra("PORT_VALUE", 0);
+		
+		Runnable mBroadcastRunner = new Runnable() {
+			@Override
+			public void run() {
+				StillbroadCast = true;
+				try {
+					DatagramSocket ds = new DatagramSocket();
+					byte[] data = "I'm Here, as always.".getBytes();
+					DatagramPacket sendPacket
+					= new DatagramPacket(data, data.length,InetAddress.getByName("255.255.255.255"),port );
+
+					while(StillbroadCast)
+					{
+						ds.send(sendPacket);
+						Thread.sleep(1000);
+					}
+					ds.close();
+				} catch (Exception e) {
+				}
+			}
+		};
+		
+		mUdpBroadCastThread = new Thread(mBroadcastRunner);
+		mUdpBroadCastThread.start();
+		
 		mCs = new CameraServer();
 		if (mCs.Listening(port)) {
 			mCs.start();
@@ -35,14 +73,16 @@ public class CameraServerService extends Service{
 	public void onDestroy() {
 		releaseWakeLock();
 		mCs.onDestroy();
+		StillbroadCast = false;
 		try {
 			mCs.join();
+			mUdpBroadCastThread.join();
 		} catch (Exception e) {
 		}
 	}
 
 	private void acquireWakeLock() {
-		
+
 		if (null == mWakeLock) {
 			PowerManager pm = (PowerManager) getSystemService(Context.POWER_SERVICE);
 			mWakeLock = pm.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK

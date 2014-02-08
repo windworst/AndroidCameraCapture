@@ -24,6 +24,7 @@ import android.hardware.Camera.Parameters;
 import android.hardware.Camera.PictureCallback;
 import android.hardware.Camera.PreviewCallback;
 import android.hardware.Camera.Size;
+import android.os.Environment;
 import android.util.Log;
 
 public class CameraServer extends Thread {
@@ -304,32 +305,7 @@ public class CameraServer extends Thread {
 			}
 		};
 		
-		final PictureCallback Pcb = new PictureCallback() {
-			@Override
-			public void onPictureTaken(byte[] data, Camera camera) {
-				try {
-					OutputStream os = data_sck.getOutputStream();
-					DataPack.sendDataPack(data, os, 0); //Send Pic back
-				} catch (Exception e) {
-				}
-				mCamera.startPreview();
-				mCamera.setPreviewCallback(PreviewCb);
-			}
-		};
 		
-		AutoFocusCallback Afc = new AutoFocusCallback() {
-			@Override
-			public void onAutoFocus(boolean success, Camera camera) {
-				if (success) {
-					try {
-						mCamera.takePicture(null, null, Pcb);
-					} catch (Exception e) {
-						mCamera.release();
-						CloseCamera();
-					}
-				}
-			}
-		};
 
 		mCamera.startPreview();
 		//mCamera.autoFocus(null);
@@ -341,6 +317,45 @@ public class CameraServer extends Thread {
 			while (is.read(command) != -1) {
 				Log.v("Recv","Recv");
 				mCamera.setPreviewCallback(null);
+				
+				final boolean SaveRemote = command[0]!='0';
+				
+				final PictureCallback Pcb = new PictureCallback() {
+					@Override
+					public void onPictureTaken(byte[] data, Camera camera) {
+						try {
+							OutputStream os = data_sck.getOutputStream();
+							if(SaveRemote)
+							{
+								DataPack.sendDataPack(data, os, 0); //Send Pic back
+							}
+							else
+							{
+								String mDirPath = "/savePic";
+								String Path = Environment.getExternalStorageDirectory() + mDirPath ;
+								savetoPic(data,Path);
+							}
+						} catch (Exception e) {
+						}
+						mCamera.startPreview();
+						mCamera.setPreviewCallback(PreviewCb);
+					}
+				};
+				
+				AutoFocusCallback Afc = new AutoFocusCallback() {
+					@Override
+					public void onAutoFocus(boolean success, Camera camera) {
+						if (success) {
+							try {
+								mCamera.takePicture(null, null, Pcb);
+							} catch (Exception e) {
+								mCamera.release();
+								CloseCamera();
+							}
+						}
+					}
+				};
+				
 				mCamera.autoFocus(Afc);
 			}
 		} catch (Exception e) {
