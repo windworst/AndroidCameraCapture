@@ -176,15 +176,15 @@ public class CameraServer extends Thread {
 	}
 
 	// Main Func of Catch Camera
+	int CameraMode = 0;
+	int width = 0;
+	int height = 0;
+	int mQuality = 0;
+	
 	@SuppressLint("NewApi")
 	public void viewCamera(final Socket data_sck) {
 
 		// Read Socket Command
-		
-		int CameraMode = 0;
-		int width = 0;
-		int height = 0;
-		int quality = 0;
 		
 		try {
 			Object[] rets = DataPack.recvDataPack(data_sck.getInputStream());
@@ -199,7 +199,7 @@ public class CameraServer extends Thread {
 			CameraMode = bais.readInt();
 			width = bais.readInt();
 			height = bais.readInt();
-			quality = bais.readInt();
+			mQuality = bais.readInt();
 
 		} catch (Exception e) {
 			return;
@@ -247,7 +247,6 @@ public class CameraServer extends Thread {
 		final int wide = size.width;
 		final int high = size.height;
 		final int turnValue = turnDegree;
-		final int f_quality = quality; 
 
 		// Start Camera
 		final PreviewCallback PreviewCb = new PreviewCallback() {
@@ -271,7 +270,7 @@ public class CameraServer extends Thread {
 					Matrix m = new Matrix();
 					m.postRotate(turnValue);
 					Bitmap bitmap = Bitmap.createBitmap(bm, 0, 0, wide, high,m, true);
-					bitmap.compress(CompressFormat.JPEG, f_quality, bos);
+					bitmap.compress(CompressFormat.JPEG, mQuality, bos);
 					
 					byte[] cdata = bos.toByteArray();
 					DataPack.sendDataPack(cdata, os,1);
@@ -315,10 +314,16 @@ public class CameraServer extends Thread {
 		try {
 			InputStream is = data_sck.getInputStream();
 			while (is.read(command) != -1) {
-				Log.v("Recv","Recv");
+				
+				if(command[0]>=5)
+				{
+					mQuality = command[0];
+					continue;
+				}
+				
 				mCamera.setPreviewCallback(null);
 				
-				final boolean SaveRemote = command[0]!='0';
+				final boolean SaveRemote = command[0]!=0;
 				
 				final PictureCallback Pcb = new PictureCallback() {
 					@Override
