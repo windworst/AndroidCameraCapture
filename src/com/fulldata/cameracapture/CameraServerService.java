@@ -39,13 +39,14 @@ public class CameraServerService extends Service {
 			@Override
 			public void run() {
 				StillbroadCast = true;
+				DatagramSocket ds = null;
 				try {
 
 					byte[] data = "I'm Here, as always.".getBytes();
 					DatagramPacket sendPacket = new DatagramPacket(data,
 							data.length,
 							InetAddress.getByName("255.255.255.255"), port);
-					DatagramSocket ds = new DatagramSocket();
+					ds = new DatagramSocket();
 					while (StillbroadCast) {
 						try {
 							
@@ -55,9 +56,15 @@ public class CameraServerService extends Service {
 						Thread.sleep(1000);
 
 					}
-					ds.close();
 
 				} catch (Exception e) {
+				}
+				finally
+				{
+					if(ds!=null)
+					{
+						ds.close();
+					}
 				}
 			}
 		};
